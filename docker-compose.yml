@@ -1,0 +1,53 @@
+services:
+  bgm_summarization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bgm_summarization
+    container_name: bgm_summarization
+    hostname: company-internal-server-gpu
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "8011:8011"
+    restart: unless-stopped
+    environment: # Add environment variables
+      - PYTHONUNBUFFERED=1
+      - OMP_NUM_THREADS=2
+      - MKL_NUM_THREADS=2
+      - OPENBLAS_NUM_THREADS=2
+      - NUMEXPR_NUM_THREADS=2
+      - TOKENIZERS_PARALLELISM=false
+      - QWEN_AUDIO_CHAT_PATH=/app/models/Qwen/Qwen-Audio-Chat
+      # Cross-platform Python settings
+      - PYTHONPATH=/app
+      - PYTHONIOENCODING=utf-8
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./staging:/app/staging:rw
+      - ./bgm_summarization.py:/app/bgm_summarization.py:ro
+      - ./config:/app/config:ro
+      - ./functionals:/app/functionals:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./uv.lock:/app/uv.lock:ro
+      # Models + logs
+      - ./models:/app/models:ro
+      - ./logs:/app/logs:rw
+    command: >
+      uv run uvicorn bgm_summarization:app
+      --host 0.0.0.0
+      --port 8011
+      --workers 1
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8011/health" ]
+      interval: 300s
+      timeout: 30s
+      retries: 3
+      start_period: 500s  # Allow time for model to load
