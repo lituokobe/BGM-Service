@@ -8,7 +8,8 @@ from pathlib import Path
 import asyncio
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from config.constant_config import BGM_SUMMARY_PROMPT, MAX_RETRY
+from config.constant_config import MAX_RETRY
+from functionals.prompts import BGM_SUMMARY_PROMPT
 from config.path_config import QWEN_AUDIO_CHAT_PATH, STAGING_DIR
 from config.schema_config import BGMSummary, SummarizeBGMRequest, APIResponse
 from functionals.logger import bgm_logger
@@ -108,7 +109,7 @@ async def summarize_bgm(request: SummarizeBGMRequest) -> APIResponse[BGMSummary]
                     return APIResponse[BGMSummary].fail(e_m, error_code="SUMMARY_INVALID")
 
             except Exception as e:
-                em = f"第{attempt + 1}/{MAX_RETRY}次总结背景音乐{staged_file}，报错: {e}"
+                e_m = f"第{attempt + 1}/{MAX_RETRY}次总结背景音乐{staged_file}，报错: {e}"
                 bgm_logger.error(e_m)
                 if attempt < (MAX_RETRY-1):
                     await asyncio.sleep(0.1)
