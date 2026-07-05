@@ -2,10 +2,7 @@
 
 > 基于 Qwen-Audio-Chat 的本地化部署方案，为 AI 短视频项目提供高精度的背景音乐理解能力。
 > this is change1222
-> it is change2
-=======
-> this is change1
-
+> this is change1 resolved
 
 ## 📋 目录
 - [功能特性](#-功能特性)
