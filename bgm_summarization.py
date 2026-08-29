@@ -5,7 +5,6 @@ import time
 import os
 from datetime import datetime
 from pathlib import Path
-import asyncio
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from config.constant_config import MAX_RETRY
@@ -145,24 +144,25 @@ async def health_check():
     }
 
 if __name__ == "__main__":
-    # BGM (music) summary
-    result3 = {}
-    for bgm in [
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\always_online.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\chinese-happiness.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\chinese-magnificent.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\classic_ad.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\classic_business.mp3",
-        r"E:\Li_Tuo_work\bgm_service\bg_music\drum.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\epic.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\family.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\fashionable.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\guitar_solo.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\hip-hop_rock_stylish.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\inspiring_rock.mp3",
-        # r"E:\Li_Tuo_work\bgm_service\bg_music\rock_trailer.mp3",
-    ]:
-        res = summarize_bgm(SummarizeBGMRequest(bgm_path=bgm))
-        result3[bgm] = res
+    # 本地冒烟测试：先加载模型（模拟 lifespan 启动），再用 asyncio 驱动 async 端点。
+    # 测试音频需放入 staging 目录（容器内 /app/staging），或使用 http(s) URL。
+    import asyncio
 
-    print(result3)
+    bgm_tokenizer = AutoTokenizer.from_pretrained(QWEN_AUDIO_CHAT_PATH, trust_remote_code=True)
+    bgm_model = AutoModelForCausalLM.from_pretrained(
+        QWEN_AUDIO_CHAT_PATH, device_map="cuda", trust_remote_code=True
+    ).eval()
+
+    test_bgms = [
+        # "always_online.mp3",        # 相对 staging 目录
+        # "drum.mp3",
+        # "https://example.com/audio.mp3",
+    ]
+
+    async def _run():
+        results = {}
+        for bgm in test_bgms:
+            results[bgm] = await summarize_bgm(SummarizeBGMRequest(bgm_path=bgm))
+        return results
+
+    print(asyncio.run(_run()))
